@@ -1,0 +1,34 @@
+#TOOLCHAIN = "/Users/ivansidorov/Downloads/stm32-bin/usr/local/stm32/bin/arm"
+FREQ=12000000
+LDSCRIPT = "stm32_flash.ld"
+GDBSCRIPT = "run.gdb"
+GDBDEBUGSCRIPT = "debug.gdb"
+STM32LIB="/home/vbmart/Desktop/stm32/STM32F10x_StdPeriph_Lib_V3.5.0/Libraries/STM32F10x_StdPeriph_Driver"
+CFLAGS = "-I. -I#{STM32LIB}/inc -I/home/vbmart/sat/arm-none-eabi/include -ffunction-sections -fdata-sections -Wall -mthumb -Os -mcpu=cortex-m3 -DSTM32F10X_LD_VL -DHSE_VALUE=#{FREQ} -D\"assert_param(expr)=\""
+LDFLAGS = "-L/home/vbmart/sat/arm-none-eabi/lib -T#{LDSCRIPT} -nostartfiles -Wl,-gc-sections"
+LIBS = ""
+GCC = "/home/vbmart/sat/bin/arm-none-eabi-gcc"
+GDB = "/home/vbmart/sat/bin/arm-none-eabi-gdb"
+PERIPH = "rcc gpio usart exti adc"
+
+STM32LIB_SRC = "#{STM32LIB}/src/misc.c " + PERIPH.split(" ").map {|c| "#{STM32LIB}/src/stm32f10x_#{c}.c" }.join(" ")
+
+task :compile => :clean do
+  sh "#{GCC} #{CFLAGS} #{LDFLAGS} #{STM32LIB_SRC} *.c *.s -o bin.elf"
+end
+
+task :run =>  :compile do
+    sh "sudo /home/vbmart/Desktop/temp/stlink/st-util -p 1234 -1 &"
+    sh "#{GDB} -x #{GDBSCRIPT} --batch"
+end
+
+task :debug do
+#    sh "sudo /home/vbmart/sat/st-util -p 1234 -1 &"
+    sh "#{GDB} -x #{GDBDEBUGSCRIPT}"
+end
+
+task :clean do
+    rm Dir.glob('*.{o,elf}')
+end
+
+task :default => :run
