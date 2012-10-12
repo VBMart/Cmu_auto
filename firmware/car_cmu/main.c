@@ -231,6 +231,105 @@ void ledsBrBufToLedsBAMBuf(uint8_t ledsBrBuf[], uint8_t ledsBuf[][LEDS_BAM_BUF_L
   }
 }
 
+//-----------------------------------------------------------------------------
+// Tis function converts HSV values to RGB values, scaled from 0 to maxBright -
+//
+// The ranges for the input variables are:
+// h: 0-359
+// s: 0-255
+// v: 0-255
+//
+// The ranges for the output variables are:
+// r: 0-maxBrightness
+// g: 0-maxBrightness
+// b: 0-maxBrightness
+void hsv2rgb(uint16_t h, uint16_t s, uint16_t v, uint8_t *r, uint8_t *g, uint8_t *b, uint8_t maxBright){
+  uint16_t h_accent;
+  uint16_t bottom;
+  uint16_t top;
+  uint8_t rising;
+  uint8_t falling;
+
+  h_accent = h / 60;
+  bottom = ((255 - s) * v) >> 8;
+  top = v;
+  rising = ((top-bottom)*(h % 60))/60 + bottom;
+  falling = ((top-bottom)*(60 - h % 60))/60 + bottom;
+  //printf("%d, %d, %d, %d ->", h_accent, rising, falling, bottom);
+  switch(h_accent){
+    case 0:
+      *r = top;
+      *g = rising;
+      *b = bottom;
+      break;
+    case 1:
+      *r = falling;
+      *g = top;
+      *b = bottom;
+      break;
+   case 2:
+      *r = bottom;
+      *g = top;
+      *b = rising;
+      break;
+    case 3:
+      *r = bottom;
+      *g = falling;
+      *b = top;
+      break;
+    case 4:
+      *r = rising;
+      *g = bottom;
+      *b = top;
+      break;
+    case 5:
+      *r = top;
+      *g = bottom;
+      *b = falling;
+      break;
+  }
+  //printf("%d, %d, %d\n\r", r, g, b);
+  if (maxBright < 255) {
+    *r = *r * maxBright / 255;
+    *g = *g * maxBright / 255;
+    *b = *b * maxBright / 255;
+  }
+}
+// Tis function converts HSV values to RGB values, scaled from 0 to maxBright -
+//-----------------------------------------------------------------------------
+
+void setRainbow(uint8_t ledsBrBuf[], uint8_t ledsCount, uint8_t range, uint16_t iCurrent, uint8_t direction){
+  uint16_t i;
+  uint16_t hh;
+  uint16_t ss;
+  uint16_t vv;
+  uint16_t rr;
+  uint16_t gg;
+  uint16_t bb;
+  uint16_t ii;
+  
+  for (i = 0; i < 16; i++){
+    if (direction){
+      ii = iCurrent;
+    }else{
+      ii = 360 - iCurrent;
+    } 
+    hh = ((i*360/(range) + ii)) % 360;
+    ss = 255;
+    vv = 255;
+    hsv2rgb(hh, ss, vv, &rr, &gg, &bb, 255);
+    //printf("%d, %d, %d, %d, %d, %d, %d, %d\n\r", i, ii, hh, ss, vv, rr, gg, bb);
+    if (direction){
+      ii = i*3;
+    }else{
+      ii = (15-i)*3;
+    }  
+    ledsBrBuf[ii] = bb;
+    ledsBrBuf[ii+1] = rr;
+    ledsBrBuf[ii+2] = gg;    
+  }
+}
+
 void SysTick_Handler(){
   
   iPWM++;
@@ -375,6 +474,16 @@ int main(void) {
   br = 1; 
   uint8_t led;
   uint8_t iled;
+  uint16_t ii;
+  ii = 360;
+  
+  while (1){
+    setRainbow(ledsBrightBuf, LEDS_COUNT, 10, ii, 1);
+    ledsBrBufToLedsBAMBuf(ledsBrightBuf, ledsBAMBuf, LEDS_COUNT);
+    ii--;
+    if (ii == 0){ii = 360;}
+    delay(5);
+  }
 
   led = 0;
   dir = 1;
