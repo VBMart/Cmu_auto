@@ -138,7 +138,7 @@ void init() {
   GPIO_Init(GPIOB, &gpioInitStruct);
   GPIO_ResetBits(GPIOB, GPIO_Pin_8);
   
-  SysTick_Config(SystemCoreClock / (255*50));
+  SysTick_Config(SystemCoreClock / (255*50*4));
 }
 
 #define SOCKET1_ON  GPIO_SetBits(GPIOB,   GPIO_Pin_0);
@@ -209,10 +209,10 @@ void ledsBrBufToLedsBuf(uint8_t ledsBrBuf[], uint8_t ledsBuf[], uint8_t ledsCoun
   buf = 0;
   
   for (i = 0; i < ledsCount; i++){
-    //printf("%d, %d, %d, %d", i, j, buf, ledsBrBuf[i]);
+    //printf("%d, %d, %d, %d, %d", i, j, buf, ledsBrBuf[i], mod);
     
-    buf = buf | ((ledsBrBuf[i] & mod == mod) << j);
-    //printf(", %d, %d, %d", ledsBrBuf[i] & 128 == 128, (ledsBrBuf[i] & 128 == 128) << j, buf);
+    buf = buf | (((uint8_t)(ledsBrBuf[i] & mod) == mod) << j);
+    //printf(", %d, %d, %d, %d", ledsBrBuf[i] & mod, (uint8_t)(ledsBrBuf[i] & mod) == mod, ((uint8_t)(ledsBrBuf[i] & mod) == mod) << j, buf);
     //printf("\n\r");
     j++;
     if (j == 8){
@@ -232,6 +232,7 @@ void ledsBrBufToLedsBAMBuf(uint8_t ledsBrBuf[], uint8_t ledsBuf[][LEDS_BAM_BUF_L
 }
 
 void SysTick_Handler(){
+  
   iPWM++;
   
   //printf("%d %d %d\n\r", iPWM, iBAM, 1 << iBAM);
@@ -244,6 +245,7 @@ void SysTick_Handler(){
     iPWM = 0;
     iBAM = 1;
   }
+  
 }
 
 void init_pins() {
@@ -367,13 +369,129 @@ int main(void) {
   }  
   ledsBrBufToLedsBAMBuf(ledsBrightBuf, ledsBAMBuf, LEDS_COUNT);
   
-  j = 0;
+  j = 1;
+  uint8_t br;
+  char dir = 1;
+  br = 1; 
+  uint8_t led;
+  uint8_t iled;
+
+  led = 0;
+  dir = 1;
+  while (1){
+    iled = 0;
+    for (i = 0; i < LEDS_COUNT; i++){
+      if ( i >= 18){
+        if ((i % 3 == 0) || (i % 3 == 2)){
+          if (led == iled){
+            ledsBrightBuf[i] = 255;
+          }else if ((led == iled+1) || (led == iled-1)){
+            ledsBrightBuf[i] = 64;
+          }else if ((led == iled+2) || (led == iled-2)){
+            ledsBrightBuf[i] = 16;
+          }else if ((led == iled+3) || (led == iled-3)){
+            ledsBrightBuf[i] = 4;
+          }else{
+            ledsBrightBuf[i] = 0;
+          }
+          ledsBrightBuf[i] = ledsBrightBuf[i] >> 2;
+        }else{
+          ledsBrightBuf[i] = 0;
+        }
+      }else{
+        ledsBrightBuf[i] = 0;
+      }
+      if (i % 3 == 2){
+        iled++;
+      }
+    }  
+    ledsBrBufToLedsBAMBuf(ledsBrightBuf, ledsBAMBuf, LEDS_COUNT);
+    
+    led = led + dir;
+    if (led == 18-3){ dir = - 1;}
+    if (led == 0+5) {dir = 1;}
+    
+    delay(110);  
+  }
+
+  led = 18;
+  while (1){
+    for (i = 0; i < LEDS_COUNT; i++){
+      if ((i == led) || (i == 63 - led)){
+        ledsBrightBuf[i] = 255;
+      }else{
+        ledsBrightBuf[i] = 0;
+      }  
+    }  
+    ledsBrBufToLedsBAMBuf(ledsBrightBuf, ledsBAMBuf, LEDS_COUNT);
+    br = br + dir;
+    if (br == 0) {
+      dir = 3;
+      j++;
+      if (j >= 16){
+        j = 1;
+      }
+    }
+    
+    led++;
+    if (led >=48){ led = 18;}
+    
+    if (br == 255) {dir = -3;}
+   
+    if (curPos == 1){
+      LED1_ON;
+      LED2_OFF;
+    }else{
+      LED2_ON;
+      LED1_OFF;
+    }     
+     
+    curPos = 1 - curPos;    
+    delay(200);  
+  }
+  
+  
+  while (1){
+    for (i = 0; i < LEDS_COUNT; i++){
+      /*if (i % 3 == 1){
+        ledsBrightBuf[i] = br;
+      }else{
+        ledsBrightBuf[i] = 0;
+      }*/
+      ledsBrightBuf[i] = br * ((j & (1 << (i % 3))) == (1 << (i % 3)));
+    }  
+    ledsBrBufToLedsBAMBuf(ledsBrightBuf, ledsBAMBuf, LEDS_COUNT);
+    br = br + dir;
+    if (br == 0) {
+      dir = 1;
+      j++;
+      if (j >= 16){
+        j = 1;
+      }      
+    }
+    if (br == 255) {dir = -1;}
+    
+    if (curPos == 1){
+      LED1_ON;
+      LED2_OFF;
+    }else{
+      LED2_ON;
+      LED1_OFF;
+    }     
+     
+    curPos = 1 - curPos;    
+    delay(2);     
+  }
+   
   while (1){
     j = j + 1;
     if (j >= 16){
       j = 0;
+      br = br * 2;
+      if (br == 0) {br = 1;}
     }
-    
+   
+  
   for (i = 0; i < LEDS_COUNT; i++){
     /*
     if (i % 3 == 0){
@@ -382,9 +500,13 @@ int main(void) {
       ledsBrightBuf[i] = 0;
     }
     */
-    ledsBrightBuf[i] = 255 * ((j & (1 << (i % 3))) == (1 << (i % 3)));
+    ledsBrightBuf[i] = br * ((j & (1 << (i % 3))) == (1 << (i % 3)));
   }  
   ledsBrBufToLedsBAMBuf(ledsBrightBuf, ledsBAMBuf, LEDS_COUNT);
+  //for (i = 0; i < 8; i++){
+//    writeLedsData(ledsBAMBuf[7], LEDS_BAM_BUF_LENGTH);
+//    delay(500);
+//  }
     
     
     /*
@@ -407,7 +529,7 @@ int main(void) {
     
      
     curPos = 1 - curPos;    
-    delay(800);    
+    delay(1000);    
   }  
   
   
