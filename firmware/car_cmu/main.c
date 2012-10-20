@@ -48,6 +48,11 @@ uint8_t bluetooth_read() {
   return USART_ReceiveData(USART1);
 }
 
+// эти самые рид и принтчар мож переименовать в bluetooth_read и bluetooth_write
+uint8_t testBluetooth_read() {
+  return (USART_GetFlagStatus(USART1, USART_FLAG_RXNE) != RESET);
+}
+
 // not use
 void print(char *str) {
   while(*str) {
@@ -362,118 +367,7 @@ void init_pins() {
   GPIO_Init(GPIOA, &gpioInitStruct);
 }
 
-
-int main(void) {
-  init_printf(NULL, put);
-  init_pins();
-  uart_init();
-  init();
-  iBAM = 0;
-  
-  LED1_OFF;
-  LED2_OFF;
-  SOCKET1_OFF;
-  SOCKET2_OFF;
-  SOCKET3_OFF;
-  SOCKET4_OFF;
-  SOCKET5_OFF;
-  
-  READY_PIN_OFF;
-  CLOCK_PIN_OFF;
-  
-  uint8_t i;
-  uint8_t j = 0;
-  uint8_t k = 0;
-  
-  /*
-  LED1_ON;
-  printf("Light on\n\r"); 
-  
-  DATA_PIN_ON; // Data
-  for (i = 0; i<50; i++){
-    CLOCK_PIN_ON; // Clock
-    CLOCK_PIN_OFF; // Clock
-  }
-  READY_PIN_ON; // Ready
-  READY_PIN_OFF; // Ready  
-  delay(1000); 
-
-  printf("End delay\n\r");   
-  LED2_ON;
-  LED1_OFF;
-  */
-
-  /*
-  uint8_t ledBuf0[LEDS_BAM_BUF_LENGTH];
-  uint8_t ledBuf255[LEDS_BAM_BUF_LENGTH];  
-  */
-  
-  /*
-  for (i = 0; i<LEDS_BUF_LENGTH; i++){
-    ledBuf0[i] = 0;
-    ledBuf255[i] = 255;    
-  }  
-  
-  writeLedsData(ledBuf0, LEDS_BUF_LENGTH);
-  delay(1000);  
-  writeLedsData(ledBuf255, LEDS_BUF_LENGTH);
-  delay(1000);
-  writeLedsData(ledBuf0, LEDS_BUF_LENGTH);  
-  delay(1000); 
-  */ 
-  
-  curPos = 0;
-  LED2_OFF;
-  
-  
-  uint8_t ledBuf[LEDS_BAM_BUF_LENGTH];
-  uint8_t ledBrBuf[LEDS_COUNT];
-  
-  /*
-  for (i = 0; i < LEDS_COUNT; i++){
-    ledBrBuf[i] = 0;
-  }
-  ledsBrBufToLedsBuf(ledBrBuf, ledBuf, LEDS_COUNT, 128);
-  writeLedsData(ledBuf, LEDS_BAM_BUF_LENGTH);
-  delay(500);
-  
-  for (i = 0; i < LEDS_COUNT; i++){
-    ledBrBuf[i] = 255;
-  }
-  ledsBrBufToLedsBuf(ledBrBuf, ledBuf, LEDS_COUNT, 128);
-  writeLedsData(ledBuf, LEDS_BAM_BUF_LENGTH);
-  delay(500); 
-   
-  for (i = 0; i < LEDS_COUNT; i++){
-    ledBrBuf[i] = 0;
-  }
-  ledsBrBufToLedsBuf(ledBrBuf, ledBuf, LEDS_COUNT, 128);
-  writeLedsData(ledBuf, LEDS_BAM_BUF_LENGTH);
-  delay(500);
-  */
-  
-  /*
-  uint8_t ldBuf[16][LEDS_BAM_BUF_LENGTH];
-  for (j = 0; j < 16; j++){
-    for (i = 0; i < LEDS_COUNT; i++){
-      ledBrBuf[i] = 255 * ((j & (1 << (i % 3))) == (1 << (i % 3)));
-    }    
-    ledsBrBufToLedsBuf(ledBrBuf, ldBuf[j], LEDS_COUNT, 128);    
-  }
-  */
-  
-  j = 12;
-  for (i = 0; i < LEDS_COUNT; i++){
-    ledsBrightBuf[i] = 0;
-  }  
-  ledsBrBufToLedsBAMBuf(ledsBrightBuf, ledsBAMBuf, LEDS_COUNT);
-  
-  j = 1;
-  uint8_t br;
-  char dir = 1;
-  br = 1; 
-  uint8_t led;
-  uint8_t iled;
+void doRainbow(){
   uint16_t ii;
   ii = 360;
   
@@ -483,15 +377,21 @@ int main(void) {
     ii--;
     if (ii == 0){ii = 360;}
     delay(5);
-  }
+  }  
+}
 
+void doRunningColor(){
+  uint8_t led;
+  uint8_t iled;
+  uint8_t i;
+  char dir = 1;
   led = 0;
   dir = 1;
   while (1){
     iled = 0;
     for (i = 0; i < LEDS_COUNT; i++){
       if ( i >= 18){
-        if ((i % 3 == 0) || (i % 3 == 2)){
+        if ((i % 3 == 1) || (i % 3 == 1)){
           if (led == iled){
             ledsBrightBuf[i] = 255;
           }else if ((led == iled+1) || (led == iled-1)){
@@ -520,8 +420,91 @@ int main(void) {
     if (led == 18-3){ dir = - 1;}
     if (led == 0+5) {dir = 1;}
     
-    delay(110);  
+    delay(160);  
   }
+}
+
+
+int main(void) {
+  init_printf(NULL, put);
+  init_pins();
+  uart_init();
+  init();
+  iBAM = 0;
+  
+  LED1_OFF;
+  LED2_OFF;
+  SOCKET1_OFF;
+  SOCKET2_OFF;
+  SOCKET3_OFF;
+  SOCKET4_OFF;
+  SOCKET5_OFF;
+  
+  READY_PIN_OFF;
+  CLOCK_PIN_OFF;
+  
+  uint8_t i;
+  uint8_t j = 0;
+  uint8_t k = 0;
+  
+ 
+  curPos = 0;
+  LED2_OFF;
+  
+  
+  uint8_t ledBuf[LEDS_BAM_BUF_LENGTH];
+  uint8_t ledBrBuf[LEDS_COUNT];
+  
+ 
+  j = 12;
+  for (i = 0; i < LEDS_COUNT; i++){
+    ledsBrightBuf[i] = 0;
+  }  
+  ledsBrBufToLedsBAMBuf(ledsBrightBuf, ledsBAMBuf, LEDS_COUNT);
+  
+  printf("started\n\r");
+  //doRainbow();
+  //doRunningColor();
+  int cmd;
+
+  
+  uint16_t ii;
+  ii = 360;
+  int delta;
+  delta = -1; 
+  cmd = 0;
+  while (1){
+    if (testBluetooth_read()){
+//    if (USART_GetFlagStatus(USART1, USART_FLAG_RXNE) != RESET){
+      printf("(");        
+      cmd = bluetooth_read();
+      printf("%d", cmd);
+      printf(")");
+    }
+
+    if (cmd == 16){
+      delta = 1;
+    }
+    if (cmd == 4){
+      delta = -1;
+    }  
+    if (cmd == 32){
+      delta = 0;
+    }        
+          
+    setRainbow(ledsBrightBuf, LEDS_COUNT, 10, ii, 1);
+    ledsBrBufToLedsBAMBuf(ledsBrightBuf, ledsBAMBuf, LEDS_COUNT);
+    ii = ii + delta;
+    if ((ii == 0) && (delta < 0)){ii = 360;}
+    if ((ii == 360) && (delta > 0)){ii = 0;}
+    delay(5);  
+  }
+  
+  j = 1;
+  uint8_t br;
+  char dir = 1;
+  br = 1; 
+  uint16_t led;
 
   led = 18;
   while (1){
