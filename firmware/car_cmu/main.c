@@ -53,7 +53,18 @@ uint8_t testBluetooth_read() {
   return (USART_GetFlagStatus(USART1, USART_FLAG_RXNE) != RESET);
 }
 
-// not use
+// эти самые рид и принтчар мож переименовать в bluetooth_read и bluetooth_write
+uint8_t bluetooth_read2() {
+  while(USART_GetFlagStatus(USART2, USART_FLAG_RXNE) == RESET);
+  return USART_ReceiveData(USART2);
+}
+
+// эти самые рид и принтчар мож переименовать в bluetooth_read и bluetooth_write
+uint8_t testBluetooth_read2() {
+  return (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET);
+}
+
+// UART out
 void print(char *str) {
   while(*str) {
     USART_SendData(USART1, *(str++));
@@ -123,6 +134,13 @@ void uart_init() {
   gpioInitStruct.GPIO_Speed = GPIO_Speed_10MHz;
   GPIO_Init(GPIOA, &gpioInitStruct);
   
+  
+  usartInit.USART_BaudRate = 19200;
+  usartInit.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+  usartInit.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
+  usartInit.USART_Parity = USART_Parity_No;
+  usartInit.USART_StopBits = USART_StopBits_1;
+  usartInit.USART_WordLength = USART_WordLength_8b;  
   USART_Init(USART2, &usartInit);  
   USART_Cmd(USART2, ENABLE);
 }
@@ -375,7 +393,10 @@ void doRainbow(){
     setRainbow(ledsBrightBuf, LEDS_COUNT, 10, ii, 1);
     ledsBrBufToLedsBAMBuf(ledsBrightBuf, ledsBAMBuf, LEDS_COUNT);
     ii--;
-    if (ii == 0){ii = 360;}
+    if (ii == 0){
+      ii = 360; 
+      printf("New iteration\n\r");
+    }
     delay(5);
   }  
 }
@@ -391,7 +412,7 @@ void doRunningColor(){
     iled = 0;
     for (i = 0; i < LEDS_COUNT; i++){
       if ( i >= 18){
-        if ((i % 3 == 1) || (i % 3 == 1)){
+        if ((i % 3 == 1)/* || (i % 3 == 2)*/){
           if (led == iled){
             ledsBrightBuf[i] = 255;
           }else if ((led == iled+1) || (led == iled-1)){
@@ -420,7 +441,7 @@ void doRunningColor(){
     if (led == 18-3){ dir = - 1;}
     if (led == 0+5) {dir = 1;}
     
-    delay(160);  
+    delay(80);  
   }
 }
 
@@ -463,16 +484,37 @@ int main(void) {
   ledsBrBufToLedsBAMBuf(ledsBrightBuf, ledsBAMBuf, LEDS_COUNT);
   
   printf("started\n\r");
+  
+  uint8_t cmd;
+  int iter = 0;
+  while (1) {
+//    printf("Recieved: ");
+    for (i = 0; i < LEDS_COUNT; i++){
+      cmd = bluetooth_read2();
+      ledsBrightBuf[i] = cmd;
+//      printf("%d ", ledsBrightBuf[i]);
+    }  
+//    printf("\n\rRecieved end\n\r");
+    ledsBrBufToLedsBAMBuf(ledsBrightBuf, ledsBAMBuf, LEDS_COUNT);
+
+    if (iter){
+      LED2_OFF;
+      LED1_ON;
+    }else{
+      LED2_ON;
+      LED1_OFF;
+    }  
+    iter = 1 - iter;
+  }
   //doRainbow();
   //doRunningColor();
-  int cmd;
-
   
   uint16_t ii;
   ii = 360;
   int delta;
   delta = -1; 
   cmd = 0;
+  /*
   while (1){
     if (testBluetooth_read()){
 //    if (USART_GetFlagStatus(USART1, USART_FLAG_RXNE) != RESET){
@@ -492,13 +534,15 @@ int main(void) {
       delta = 0;
     }        
           
-    setRainbow(ledsBrightBuf, LEDS_COUNT, 10, ii, 1);
+    setRainbow(ledsBrightBuf, LEDS_COUNT, 5, ii, 1);
     ledsBrBufToLedsBAMBuf(ledsBrightBuf, ledsBAMBuf, LEDS_COUNT);
     ii = ii + delta;
-    if ((ii == 0) && (delta < 0)){ii = 360;}
-    if ((ii == 360) && (delta > 0)){ii = 0;}
-    delay(5);  
+    if ((ii == 0) && (delta < 0)){ii = 359;}
+    if ((ii == 359) && (delta > 0)){ii = 0;}
+    delay(7);  
   }
+  */
+  
   
   j = 1;
   uint8_t br;
@@ -507,6 +551,7 @@ int main(void) {
   uint16_t led;
 
   led = 18;
+  /*
   while (1){
     for (i = 0; i < LEDS_COUNT; i++){
       if ((i == led) || (i == 63 - led)){
@@ -541,15 +586,16 @@ int main(void) {
     curPos = 1 - curPos;    
     delay(200);  
   }
+  */
   
-  
+/*  
   while (1){
     for (i = 0; i < LEDS_COUNT; i++){
-      /*if (i % 3 == 1){
-        ledsBrightBuf[i] = br;
-      }else{
-        ledsBrightBuf[i] = 0;
-      }*/
+//      if (i % 3 == 1){
+//        ledsBrightBuf[i] = br;
+//      }else{
+//        ledsBrightBuf[i] = 0;
+//      }
       ledsBrightBuf[i] = br * ((j & (1 << (i % 3))) == (1 << (i % 3)));
     }  
     ledsBrBufToLedsBAMBuf(ledsBrightBuf, ledsBAMBuf, LEDS_COUNT);
@@ -574,6 +620,7 @@ int main(void) {
     curPos = 1 - curPos;    
     delay(2);     
   }
+  */
    
   while (1){
     j = j + 1;
